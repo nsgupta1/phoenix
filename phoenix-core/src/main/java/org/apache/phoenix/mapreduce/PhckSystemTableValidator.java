@@ -20,86 +20,68 @@ package org.apache.phoenix.mapreduce;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.phoenix.jdbc.PhoenixConnection;
 import org.apache.phoenix.mapreduce.util.ConnectionUtil;
-import org.apache.phoenix.mapreduce.util.PhckRow;
-import org.apache.phoenix.mapreduce.util.PhckTable;
 import org.apache.phoenix.mapreduce.util.PhckUtil;
+import org.apache.phoenix.query.QueryConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Properties;
+import java.util.*;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import static org.apache.phoenix.jdbc.PhoenixDatabaseMetaData.SYSTEM_SCHEMA_NAME;
-import static org.apache.phoenix.jdbc.PhoenixDatabaseMetaData.TABLE_SCHEM;
+import static org.apache.phoenix.jdbc.PhoenixDatabaseMetaData.*;
 
 public class PhckSystemTableValidator extends Configured implements Tool {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PhckSystemTableValidator.class);
-    private HashSet<PhckRow> orphanRowSet = new HashSet<>();
-    private HashSet<PhckRow> invalidSystemTableName = new HashSet<>();
-    private HashSet<PhckTable> invalidSystemTableCount = new HashSet<>();
-    private HashSet<PhckRow> invalidSystemTableLink = new HashSet<>();
-    private HashMap<String, PhckTable> allTables = new HashMap<>();
-    private HashSet<PhckTable> validRows = new HashSet<>();
+    private HashMap<String,String> allSystemTables = new HashMap<>();
+    private List<String> currentSystemTables = new ArrayList<>();
 
-    private static final String SELECT_QUERY = PhckUtil.BASE_SELECT_QUERY
-            + " WHERE " + TABLE_SCHEM + " = '" + SYSTEM_SCHEMA_NAME + "'";
+    //available for testing
+    public void populateSystemTables() {
+        allSystemTables.put(SYSTEM_CATALOG_TABLE, QueryConstants.CREATE_TABLE_METADATA);
+        allSystemTables.put(SYSTEM_STATS_TABLE,QueryConstants.CREATE_STATS_TABLE_METADATA);
+        allSystemTables.put(TYPE_SEQUENCE,QueryConstants.CREATE_SEQUENCE_METADATA);
+        allSystemTables.put(SYSTEM_FUNCTION_TABLE,QueryConstants.CREATE_FUNCTION_METADATA);
+        allSystemTables.put(SYSTEM_LOG_TABLE,QueryConstants.CREATE_LOG_METADATA);
+        allSystemTables.put(SYSTEM_CHILD_LINK_TABLE,QueryConstants.CREATE_CHILD_LINK_METADATA);
+        allSystemTables.put(SYSTEM_MUTEX_TABLE_NAME,QueryConstants.CREATE_MUTEX_METADTA);
+        allSystemTables.put(SYSTEM_TASK_TABLE,QueryConstants.CREATE_TASK_METADATA);
+    }
+
+    private static final String SELECT_QUERY = "SELECT " + TABLE_NAME +  " FROM " + SYSTEM_CATALOG_NAME
+            + " WHERE " + TABLE_SCHEM + " = '" + SYSTEM_SCHEMA_NAME + "'" + " AND " + TABLE_TYPE + " = 's'";
 
     public void fetchAllRows(PhoenixConnection phoenixConnection) throws Exception {
         ResultSet viewRS = phoenixConnection.createStatement().executeQuery(SELECT_QUERY);
         while (viewRS.next()) {
-            PhckRow row = new PhckRow(viewRS, PhckUtil.PHCK_ROW_RESOURCE.CATALOG);
-            PhckTable phckTable;
-            String tableName = row.getFullName();
-            if (row.isHeadRow()) {
-                phckTable = new PhckTable(row.getTenantId(), row.getTableSchema(),
-                        row.getTableName(),row.getTableType(),row.getColumnCount(),
-                        row.getIndexState());
-                if (!phckTable.isSystemTable()) {
-                    invalidSystemTableName.add(row);
-                } else {
-                    allTables.put(tableName,phckTable);
-                }
-            } else if (row.isLinkRow()) {
-                invalidSystemTableLink.add(row);
-            } else if (row.isColumnRow()){
-                if (allTables.containsKey(tableName)) {
-                    allTables.get(tableName).incrementColumnCount();
-                } else {
-                    orphanRowSet.add(row);
-                }
-            } else {
-                LOGGER.warn("Unknown row type : "+row.toString());
-            }
+            currentSystemTables.add(viewRS.getString(1));
         }
     }
 
     public void processSystemLevelCheck(PhoenixConnection phoenixConnection) throws Exception {
+        populateSystemTables();
         fetchAllRows(phoenixConnection);
-        for (PhckTable table : allTables.values()) {
-            if (!table.isColumnCountMatches()) {
-                invalidSystemTableCount.add(table);
+        Admin admin = phoenixConnection.getQueryServices().getAdmin();
+        for (String table:currentSystemTables){
+            TableName tableName = TableName.valueOf(SYSTEM_CATALOG_SCHEMA+ "." + table);
+            if(admin.tableExists(tableName)) {
+                if(admin.isTableDisabled(tableName)){
+                    admin.enableTable(tableName);
+                    LOGGER.warn("Table was disabled. PHCK ENABLED Table: "+ tableName.toString());
+                }
+            } else {
+                phoenixConnection.createStatement().executeUpdate(allSystemTables.get(table));
+                LOGGER.warn("Table was dropped. PHCK CREATED Table: "+ tableName.toString());
             }
-            else {
-                validRows.add(table);
-            }
-        }
-        if(!invalidSystemTableCount.isEmpty()) {
-            throw new AssertionError("Invalid Row count detected!!!");
-        }
-        if(!invalidSystemTableLink.isEmpty()) {
-            throw new AssertionError("Invalid System table links detected!!!");
-        }
-        if(!invalidSystemTableName.isEmpty()) {
-            throw new AssertionError("Invalid tables with System schema detected!!!");
         }
     }
 
@@ -150,5 +132,4 @@ public class PhckSystemTableValidator extends Configured implements Tool {
         int result = ToolRunner.run(new PhckNonSystemTableValidator(), args);
         System.exit(result);
     }
-
 }
