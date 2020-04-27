@@ -318,7 +318,7 @@ public class PhoenixPreparedStatement extends PhoenixStatement implements Prepar
 
     @Override
     public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        setParameter(parameterIndex, inputStream);
     }
 
     @Override
