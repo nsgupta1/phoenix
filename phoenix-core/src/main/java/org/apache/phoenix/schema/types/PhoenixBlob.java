@@ -1,5 +1,7 @@
 package org.apache.phoenix.schema.types;
 
+import org.apache.phoenix.expression.BlobExpression;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Blob;
@@ -9,18 +11,18 @@ public class PhoenixBlob implements Blob {
 
     private final boolean isOutputBlob;
     private final InputStream inputStream;
-    private final LobMetadata lobMetadata;
+    private final BlobExpression.BlobMetaData blobMetaData;
 
-    public PhoenixBlob(LobMetadata lobMetadata, InputStream inputStream) {
+    public PhoenixBlob(BlobExpression.BlobMetaData blobMetaData, InputStream inputStream) {
         this.isOutputBlob = true;
         this.inputStream = inputStream;
-        this.lobMetadata = lobMetadata;
+        this.blobMetaData = blobMetaData;
     }
 
     @Override
-    public long length() throws SQLException {
+    public long length() {
         if(isOutputBlob) {
-            return lobMetadata.getSize();
+            return blobMetaData.getSize();
         }
         return 0;
     }
@@ -83,5 +85,13 @@ public class PhoenixBlob implements Blob {
     @Override
     public InputStream getBinaryStream(long pos, long length) throws SQLException {
         throw new SQLException("Not Supported");
+    }
+
+    @Override
+    public String toString() {
+        return "PhoenixBlob Object:" + super.toString() +
+                "[isOutputBlob: " + this.isOutputBlob + ", " +
+                "inputStream: " + this.inputStream + ", " +
+                "blobMetaData: " + this.blobMetaData + "]";
     }
 }

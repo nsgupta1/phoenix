@@ -112,12 +112,10 @@ public class DateUtil {
         int maxOrdinal = Integer.MIN_VALUE;
         List<PDataType> timeDataTypes = Lists.newArrayListWithExpectedSize(6);
         for (PDataType type : PDataType.values()) {
-            if(type != null) {
-                if (java.util.Date.class.isAssignableFrom(type.getJavaClass())) {
-                    timeDataTypes.add(type);
-                    if (type.ordinal() > maxOrdinal) {
-                        maxOrdinal = type.ordinal();
-                    }
+            if (java.util.Date.class.isAssignableFrom(type.getJavaClass())) {
+                timeDataTypes.add(type);
+                if (type.ordinal() > maxOrdinal) {
+                    maxOrdinal = type.ordinal();
                 }
             }
         }

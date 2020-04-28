@@ -317,17 +317,22 @@ public class PhoenixResultSet implements ResultSet, SQLCloseable {
 
     @Override
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        Blob value = getBlob(columnIndex);
+        if (value == null) {
+            return null;
+        }
+        InputStream inputStream = value.getBinaryStream();
+        wasNull = (inputStream == null);
+        return inputStream;
     }
 
     @Override
     public InputStream getBinaryStream(String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        return getBinaryStream(findColumn(columnLabel));
     }
 
     @Override
     public Blob getBlob(int columnIndex) throws SQLException {
-        //throw new SQLFeatureNotSupportedException();
         checkCursorState();
         Blob value = (Blob)getRowProjector().getColumnProjector(columnIndex-1)
                 .getValue(currentRow, PBlob.INSTANCE, ptr);
@@ -337,7 +342,7 @@ public class PhoenixResultSet implements ResultSet, SQLCloseable {
 
     @Override
     public Blob getBlob(String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        return getBlob(findColumn(columnLabel));
     }
 
     @Override

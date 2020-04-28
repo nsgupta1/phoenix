@@ -20,6 +20,7 @@ package org.apache.phoenix.expression;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
 
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
@@ -34,8 +35,6 @@ import org.apache.phoenix.schema.types.PArrayDataType;
 import org.apache.phoenix.schema.types.PBoolean;
 import org.apache.phoenix.schema.types.PChar;
 import org.apache.phoenix.schema.types.PDataType;
-import org.apache.phoenix.schema.types.PDate;
-import org.apache.phoenix.schema.types.PTime;
 import org.apache.phoenix.schema.types.PTimestamp;
 import org.apache.phoenix.schema.types.PVarchar;
 import org.apache.phoenix.schema.types.PhoenixArray;
@@ -183,6 +182,9 @@ public class LiteralExpression extends BaseTerminalExpression {
         else if (value instanceof Boolean) {
             return getBooleanLiteralExpression((Boolean)value, determinism);
         }
+        if (value instanceof InputStream) {
+            return new BlobExpression(value, sortOrder, determinism);
+        }
         PDataType actualType = PDataType.fromLiteral(value);
         type = type == null ? actualType : type;
         try {
@@ -215,6 +217,13 @@ public class LiteralExpression extends BaseTerminalExpression {
     }
 
     public LiteralExpression() {
+    }
+
+    LiteralExpression(Object value, SortOrder sortOrder, Determinism determinism, PDataType type) {
+        this.value = value;
+        this.sortOrder = sortOrder;
+        this.determinism = determinism;
+        this.type = type;
     }
     
     public LiteralExpression(byte[] byteValue) {

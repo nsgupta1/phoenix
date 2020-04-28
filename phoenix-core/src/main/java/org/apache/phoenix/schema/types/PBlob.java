@@ -18,49 +18,43 @@
 package org.apache.phoenix.schema.types;
 
 import org.apache.phoenix.schema.SortOrder;
+import org.apache.phoenix.expression.BlobExpression;
 
+import java.io.IOException;
 import java.io.InputStream;
-import java.sql.Blob;
 import java.sql.Types;
 
+/**
+ * Phoenix representation of the BLOB datatype
+ */
 public class PBlob extends PVarbinary {
 
-    public static final PBlob INSTANCE = new PBlob(new FileSystemBasedLobStore());
+    public static final PBlob INSTANCE = new PBlob();
 
-    private final LobStore store;
-
-    private PBlob(LobStore store) {
-        super("BLOB", Types.BLOB, InputStream.class, null, 70);
-        this.store = store;
+     private PBlob() {
+        super("BLOB", Types.BLOB, InputStream.class, null, 48);
     }
 
+    @Override
     public Object toObject(byte[] bytes, int offset, int length, PDataType actualType,
             SortOrder sortOrder, Integer maxLength, Integer scale) {
-
-        Object obj = super.toObject(bytes,offset,length,actualType,sortOrder,maxLength,scale);
-        if(obj == null) {
-            return null;
+        Object b = super.toObject(bytes, offset, length, actualType, sortOrder, maxLength, scale);
+        if (!(b instanceof byte[])) {
+            throw new RuntimeException("Corrupted BLOB metadata found");
         }
-        if(!(obj instanceof byte[])){
-            throw new RuntimeException("Why wasn't it stored in hbase as varbinary");
-        }
-
-        byte[] locatorBytes = (byte[]) obj;
-        LobMetadata lobLocator = getLobMetadataFromBinary(locatorBytes);
-
+        byte[] bytesCopy = (byte[])b;
+        BlobExpression.BlobMetaData blobMetaData;
         try {
-            InputStream stream = store.getLob(lobLocator.getLobLocator());
-            PhoenixBlob result = new PhoenixBlob(lobLocator,stream);
-            return result;
-        } catch(Exception e) {
-            throw new RuntimeException("Couldn't read from store locator " + lobLocator);
+            blobMetaData = BlobExpression.BlobMetaData.deserializeBlobMetaData(bytesCopy);
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException("Could not deserialize BLOB metadata");
         }
-
-
-    }
-
-    LobMetadata getLobMetadataFromBinary(byte[] bytes) {
-        return new LobMetadata(0,new String(bytes)); //TODO real metadata
+        if (blobMetaData != null) {
+            BlobExpression dummyBlobExpr = new BlobExpression(null, null, null);
+            InputStream inputStream = dummyBlobExpr.getInputStream(blobMetaData);
+            return new PhoenixBlob(blobMetaData, inputStream);
+        }
+        return null;
     }
 
 }

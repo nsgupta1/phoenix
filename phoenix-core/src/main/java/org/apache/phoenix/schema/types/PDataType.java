@@ -17,6 +17,7 @@
  */
 package org.apache.phoenix.schema.types;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
@@ -1156,7 +1157,7 @@ public abstract class PDataType<T> implements DataType<T>, Comparable<PDataType<
     public static PDataType fromLiteral(Object value) {
         if (value == null) { return null; }
         for (PDataType type : PDataType.values()) {
-            if (type.isArrayType()) {
+            if (type.isArrayType() && !(value instanceof InputStream)) {
                 if (value instanceof PhoenixArray) {
                     PhoenixArray arr = (PhoenixArray)value;
                     if ((type.getSqlType() == arr.baseType.sqlType + PDataType.ARRAY_TYPE_BASE)
