@@ -1009,6 +1009,16 @@ public class TestUtil {
     }
 
     public static void printResultSet(ResultSet rs) throws SQLException {
+        int columns = rs.getMetaData().getColumnCount();
+        StringBuilder builder = new StringBuilder();
+        for(int i = 0; i < columns; i++){
+            String columnName = rs.getMetaData().getColumnName(i + 1);
+            builder.append(columnName);
+            if(i + 1 < columns){
+                builder.append(",");
+            }
+        }
+        System.out.println(builder.toString());
         while(rs.next()){
             printResult(rs, false);
         }

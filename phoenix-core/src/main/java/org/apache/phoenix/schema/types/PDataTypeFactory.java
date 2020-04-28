@@ -102,7 +102,9 @@ public class PDataTypeFactory {
     for (PDataType t : types) {
       classToInstance.put(t.getClass(), t);
     }
-    orderedTypes = types.toArray(new PDataType[types.size()]);
+    //as we re not doing contiguous types now lets just make this bigger hacky approach
+    orderedTypes = types.toArray(new PDataType[71]);
+    orderedTypes[70] = PBlob.INSTANCE;
   }
 
   public Set<PDataType> getTypes() {

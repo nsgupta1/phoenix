@@ -33,6 +33,14 @@ public class FileSystemBasedLobStore implements LobStore {
 
     private static final String ROOT_DIRECTORY = "/tmp/";
 
+    private static FileSystemBasedLobStore INSTANCE = null;
+
+    public synchronized static FileSystemBasedLobStore getInstance() {
+        if(INSTANCE == null){
+            INSTANCE = new FileSystemBasedLobStore();
+        }
+        return INSTANCE;
+    }
 
     @Override
     public String putLob(InputStream lobStream) throws LobStoreException {

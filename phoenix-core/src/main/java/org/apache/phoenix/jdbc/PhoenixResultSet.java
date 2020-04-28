@@ -77,6 +77,7 @@ import org.apache.phoenix.schema.PColumn;
 import org.apache.phoenix.schema.PColumnImpl;
 import org.apache.phoenix.schema.tuple.ResultTuple;
 import org.apache.phoenix.schema.tuple.Tuple;
+import org.apache.phoenix.schema.types.PBlob;
 import org.apache.phoenix.schema.types.PBoolean;
 import org.apache.phoenix.schema.types.PDataType;
 import org.apache.phoenix.schema.types.PDate;
@@ -326,7 +327,12 @@ public class PhoenixResultSet implements ResultSet, SQLCloseable {
 
     @Override
     public Blob getBlob(int columnIndex) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        //throw new SQLFeatureNotSupportedException();
+        checkCursorState();
+        Blob value = (Blob)getRowProjector().getColumnProjector(columnIndex-1)
+                .getValue(currentRow, PBlob.INSTANCE, ptr);
+        wasNull = (value == null);
+        return value;
     }
 
     @Override
