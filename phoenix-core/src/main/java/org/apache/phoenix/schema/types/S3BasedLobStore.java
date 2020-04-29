@@ -30,7 +30,7 @@ public class S3BasedLobStore implements LobStore {
     }
 
     public S3BasedLobStore() {
-        BasicAWSCredentials credentials = new BasicAWSCredentials("AKIAIRFVDBF3ZVSZDP4Q", "PPLkr8QCRWlPWBYzJQeR2NkJGImg/NVupAD4tGjf");
+        BasicAWSCredentials credentials = new BasicAWSCredentials("FakeAccessKey", "FakeSecretKey");
         s3client = AmazonS3ClientBuilder.standard()
                         .withCredentials(new AWSStaticCredentialsProvider(credentials))
                         .withRegion(Regions.US_WEST_2).build();
