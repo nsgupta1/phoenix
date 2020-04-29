@@ -18,6 +18,9 @@
 package org.apache.phoenix.end2end;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.phoenix.expression.BlobExpression;
+import org.apache.phoenix.schema.types.LobStoreFactory;
+import org.apache.phoenix.schema.types.PhoenixBlob;
 import org.apache.phoenix.util.ReadOnlyProps;
 import org.apache.phoenix.util.TestUtil;
 import org.junit.BeforeClass;
@@ -30,14 +33,20 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 
+import static org.apache.phoenix.query.QueryServices.LOB_STORE_IMPL;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class BlobTypeIT extends BaseUniqueNamesOwnClusterIT {
 
     @BeforeClass
     public static synchronized void doSetup() throws Exception {
-        setUpTestDriver(ReadOnlyProps.EMPTY_PROPS);
+        Map<String, String> props = new HashMap<>();
+        props.put(LOB_STORE_IMPL, LobStoreFactory.SUPPORTED_FORMATS.LOCAL_FS.name());
+        setUpTestDriver(new ReadOnlyProps(props));
     }
 
     @Test
@@ -67,6 +76,11 @@ public class BlobTypeIT extends BaseUniqueNamesOwnClusterIT {
             Blob blob = rs.getBlob(1);
             assertTrue(IOUtils.contentEquals(BlobTypeIT.class.getResourceAsStream(fName), inputStr));
             assertTrue(IOUtils.contentEquals(BlobTypeIT.class.getResourceAsStream(fName), blob.getBinaryStream()));
+            assertTrue(blob instanceof PhoenixBlob);
+            PhoenixBlob phoenixBlob = (PhoenixBlob)blob;
+            BlobExpression.BlobMetaData metaData = phoenixBlob.getBlobMetaData();
+            assertEquals(LobStoreFactory.SUPPORTED_FORMATS.LOCAL_FS, metaData.getFormat());
+            assertTrue(metaData.isOnDisk());
         }
     }
 }

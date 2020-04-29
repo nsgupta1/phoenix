@@ -139,6 +139,7 @@ import org.apache.phoenix.util.IndexUtil;
 import org.apache.phoenix.util.SchemaUtil;
 import org.apache.phoenix.util.StringUtil;
 
+import static org.apache.phoenix.query.QueryServicesOptions.DEFAULT_LOB_STORE_IMPL;
 
 public class ExpressionCompiler extends UnsupportedAllParseNodeVisitor<Expression> {
     private boolean isAggregate;
@@ -1198,7 +1199,9 @@ public class ExpressionCompiler extends UnsupportedAllParseNodeVisitor<Expressio
             }
             Object value = PArrayDataType.instantiatePhoenixArray(arrayElemDataType, elements);
             return LiteralExpression.newConstant(value,
-                    PDataType.fromTypeId(arrayElemDataType.getSqlType() + PDataType.ARRAY_TYPE_BASE), null, null, arrayExpression.getSortOrder(), Determinism.ALWAYS, rowKeyOrderOptimizable);
+                    PDataType.fromTypeId(arrayElemDataType.getSqlType() + PDataType.ARRAY_TYPE_BASE),
+                    null, null, arrayExpression.getSortOrder(), Determinism.ALWAYS,
+                    rowKeyOrderOptimizable, DEFAULT_LOB_STORE_IMPL);
         }
         
         return wrapGroupByExpression(arrayExpression);

@@ -23,9 +23,9 @@ import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.phoenix.schema.SortOrder;
 import org.apache.phoenix.schema.tuple.Tuple;
-import org.apache.phoenix.schema.types.FileSystemBasedLobStore;
 import org.apache.phoenix.schema.types.LobStore;
 import org.apache.phoenix.schema.types.LobStoreException;
+import org.apache.phoenix.schema.types.LobStoreFactory;
 import org.apache.phoenix.schema.types.PBlob;
 import org.apache.phoenix.util.EnvironmentEdgeManager;
 import org.slf4j.Logger;
@@ -50,15 +50,12 @@ import static org.apache.phoenix.expression.BlobExpression.BlobMetaData.serializ
 public class BlobExpression extends LiteralExpression {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BlobExpression.class);
-    public enum SUPPORTED_FORMATS {
-        S3, HDFS, LOCAL_FS
-    };
     private final LobStore lobStore;
 
-    public BlobExpression(Object value, SortOrder sortOrder, Determinism determinism) {
+    public BlobExpression(Object value, SortOrder sortOrder, Determinism determinism,
+            String lobStoreImpl) {
         super(value, sortOrder, determinism, PBlob.INSTANCE);
-        // TODO: hard-coded to fs-based lob store for now. Can be a client-side config/SPI
-        this.lobStore = new FileSystemBasedLobStore();
+        this.lobStore = LobStoreFactory.getLobStore(lobStoreImpl);
     }
 
     @Override
@@ -94,9 +91,14 @@ public class BlobExpression extends LiteralExpression {
 
     @VisibleForTesting
     BlobMetaData getBlobMetaData(String lobLocation) {
-        return new BlobMetaData(true, lobLocation,
-                EnvironmentEdgeManager.currentTimeMillis(), SUPPORTED_FORMATS.LOCAL_FS,
-                UUID.randomUUID(), 1000L);
+        boolean onDisk = LobStoreFactory.isOnDisk(this.lobStore);
+        LobStoreFactory.SUPPORTED_FORMATS format = LobStoreFactory.getFormat(this.lobStore);
+        return new BlobMetaData(onDisk,
+                lobLocation,
+                EnvironmentEdgeManager.currentTimeMillis(),
+                format,
+                UUID.randomUUID(),
+                1000L);
     }
 
     /**
@@ -107,12 +109,12 @@ public class BlobExpression extends LiteralExpression {
         private boolean onDisk;
         private String lobLocator;
         private long lastUpdatedTime;
-        private SUPPORTED_FORMATS format;
+        private LobStoreFactory.SUPPORTED_FORMATS format;
         private UUID versionNo;
         private long size;
 
         BlobMetaData(boolean onDisk, String lobLocator, long lastUpdatedTime,
-                SUPPORTED_FORMATS format, UUID versionNo, long size) {
+                LobStoreFactory.SUPPORTED_FORMATS format, UUID versionNo, long size) {
             this.onDisk = onDisk;
             this.lobLocator = lobLocator;
             this.lastUpdatedTime = lastUpdatedTime;
@@ -207,7 +209,7 @@ public class BlobExpression extends LiteralExpression {
             return this.lastUpdatedTime;
         }
 
-        public SUPPORTED_FORMATS getFormat() {
+        public LobStoreFactory.SUPPORTED_FORMATS getFormat() {
             return this.format;
         }
 
