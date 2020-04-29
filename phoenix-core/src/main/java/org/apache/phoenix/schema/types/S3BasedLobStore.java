@@ -5,9 +5,9 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
 
@@ -36,23 +36,14 @@ public class S3BasedLobStore implements LobStore {
                         .withRegion(Regions.US_WEST_2).build();
     }
 
-    @VisibleForTesting
-    String getPathFromLocator(String lobLocator) {
-        return ROOT_DIRECTORY + lobLocator;
-    }
-
     @Override
     public String putLob(InputStream lobStream) throws LobStoreException {
         String lobLocator = RandomStringUtils.randomAlphanumeric(15); //For now use lobLocator
-        File tempStore = new File(getPathFromLocator(lobLocator));
         try {
-            FileUtils.copyInputStreamToFile(lobStream, tempStore);
-            s3client.putObject(BUCKET_NAME,lobLocator, tempStore);
-        } catch (IOException e) {
+            s3client.putObject(
+                   new PutObjectRequest(BUCKET_NAME, lobLocator, lobStream, new ObjectMetadata()));
+        } catch (Exception e) {
             throw new LobStoreException(e);
-        }
-        finally {
-           tempStore.delete();
         }
         return lobLocator;
     }
