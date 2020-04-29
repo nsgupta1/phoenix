@@ -43,7 +43,7 @@ import org.apache.phoenix.util.StringUtil;
 
 import com.google.common.base.Preconditions;
 
-
+import static org.apache.phoenix.query.QueryServicesOptions.DEFAULT_LOB_STORE_IMPL;
 
 /**
  * 
@@ -155,6 +155,11 @@ public class LiteralExpression extends BaseTerminalExpression {
     public static LiteralExpression newConstant(Object value, PDataType type, SortOrder sortOrder) throws SQLException {
         return newConstant(value, type, null, null, sortOrder, Determinism.ALWAYS);
     }
+
+    public static LiteralExpression newConstant(Object value, PDataType type, SortOrder sortOrder,
+            Determinism determinism, String lobStoreImpl) throws SQLException {
+        return newConstant(value, type, null, null, sortOrder, determinism, lobStoreImpl);
+    }
     
     public static LiteralExpression newConstant(Object value, PDataType type, SortOrder sortOrder, Determinism determinism) throws SQLException {
         return newConstant(value, type, null, null, sortOrder, determinism);
@@ -168,13 +173,21 @@ public class LiteralExpression extends BaseTerminalExpression {
         return newConstant(value, type, maxLength, scale, SortOrder.getDefault(), determinism);
     }
 
-    public static LiteralExpression newConstant(Object value, PDataType type, Integer maxLength, Integer scale, SortOrder sortOrder, Determinism determinism) 
+    public static LiteralExpression newConstant(Object value, PDataType type, Integer maxLength,
+            Integer scale, SortOrder sortOrder, Determinism determinism, String lobStoreImpl)
             throws SQLException {
-        return newConstant(value, type, maxLength, scale, sortOrder, determinism, true);
+        return newConstant(value, type, maxLength, scale, sortOrder, determinism, true, lobStoreImpl);
+    }
+
+    public static LiteralExpression newConstant(Object value, PDataType type, Integer maxLength, Integer scale, SortOrder sortOrder, Determinism determinism)
+            throws SQLException {
+        return newConstant(value, type, maxLength, scale, sortOrder, determinism, true, DEFAULT_LOB_STORE_IMPL);
     }
     
     // TODO: cache?
-    public static LiteralExpression newConstant(Object value, PDataType type, Integer maxLength, Integer scale, SortOrder sortOrder, Determinism determinism, boolean rowKeyOrderOptimizable)
+    public static LiteralExpression newConstant(Object value, PDataType type, Integer maxLength,
+            Integer scale, SortOrder sortOrder, Determinism determinism,
+            boolean rowKeyOrderOptimizable, String lobStoreImpl)
             throws SQLException {
         if (value == null) {
             return  (type == null) ?  getNullLiteralExpression(determinism) : getTypedNullLiteralExpression(type, determinism);
@@ -183,7 +196,7 @@ public class LiteralExpression extends BaseTerminalExpression {
             return getBooleanLiteralExpression((Boolean)value, determinism);
         }
         if (value instanceof InputStream) {
-            return new BlobExpression(value, sortOrder, determinism);
+            return new BlobExpression(value, sortOrder, determinism, lobStoreImpl);
         }
         PDataType actualType = PDataType.fromLiteral(value);
         type = type == null ? actualType : type;

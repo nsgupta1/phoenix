@@ -194,6 +194,7 @@ public interface QueryServices extends SQLCloseable {
     public static final String TRACING_TRACE_BUFFER_SIZE = "phoenix.trace.traceBufferSize";
 
     public static final String USE_REVERSE_SCAN_ATTRIB = "phoenix.query.useReverseScan";
+    public static final String LOB_STORE_IMPL = "phoenix.lob.store.impl";
 
     // Config parameters for stats collection
     public static final String STATS_UPDATE_FREQ_MS_ATTRIB = "phoenix.stats.updateFrequency";

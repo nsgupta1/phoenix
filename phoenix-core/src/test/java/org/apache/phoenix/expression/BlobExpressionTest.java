@@ -2,6 +2,7 @@ package org.apache.phoenix.expression;
 
 import org.apache.phoenix.end2end.BlobTypeIT;
 import org.apache.phoenix.schema.SortOrder;
+import org.apache.phoenix.schema.types.LobStoreFactory;
 import org.junit.Test;
 
 import java.io.InputStream;
@@ -16,7 +17,7 @@ public class BlobExpressionTest {
     public void getBlobExpression() {
         String fName = "/images/dali.jpeg";
         InputStream input = BlobTypeIT.class.getResourceAsStream(fName);
-        BlobExpression blob = new BlobExpression(input, SortOrder.ASC, Determinism.ALWAYS);
+        BlobExpression blob = new BlobExpression(input, SortOrder.ASC, Determinism.ALWAYS, null);
         assertNotNull(blob);
     }
 
@@ -24,7 +25,7 @@ public class BlobExpressionTest {
     public void testBlobMetaDataSerDes() throws Exception {
         BlobExpression.BlobMetaData blobMetaData = new BlobExpression.BlobMetaData(true,
                 "hdfs:///hostname:/tmp/file.png", 1000L,
-                BlobExpression.SUPPORTED_FORMATS.HDFS, UUID.randomUUID(), 100L);
+                LobStoreFactory.SUPPORTED_FORMATS.HDFS, UUID.randomUUID(), 100L);
 
         byte[] serializedBytes = BlobExpression.BlobMetaData.serializeBlobMetaData(blobMetaData);
         BlobExpression.BlobMetaData deserObj =

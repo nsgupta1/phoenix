@@ -19,6 +19,10 @@ public class PhoenixBlob implements Blob {
         this.blobMetaData = blobMetaData;
     }
 
+    public BlobExpression.BlobMetaData getBlobMetaData() {
+        return this.blobMetaData;
+    }
+
     @Override
     public long length() {
         if(isOutputBlob) {

@@ -50,7 +50,8 @@ public class PBlob extends PVarbinary {
             throw new RuntimeException("Could not deserialize BLOB metadata");
         }
         if (blobMetaData != null) {
-            BlobExpression dummyBlobExpr = new BlobExpression(null, null, null);
+            BlobExpression dummyBlobExpr = new BlobExpression(null, null, null,
+                    blobMetaData.getFormat().name());
             InputStream inputStream = dummyBlobExpr.getInputStream(blobMetaData);
             return new PhoenixBlob(blobMetaData, inputStream);
         }

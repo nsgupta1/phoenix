@@ -19,6 +19,8 @@ package org.apache.phoenix.compile;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.phoenix.query.QueryServices.LOB_STORE_IMPL;
+import static org.apache.phoenix.query.QueryServicesOptions.DEFAULT_LOB_STORE_IMPL;
 
 import java.sql.ParameterMetaData;
 import java.sql.ResultSet;
@@ -933,7 +935,10 @@ public class UpsertCompiler {
             if (isTopLevel()) {
                 context.getBindManager().addParamMetaData(node, column);
                 Object value = context.getBindManager().getBindValue(node);
-                return LiteralExpression.newConstant(value, column.getDataType(), column.getSortOrder(), Determinism.ALWAYS);
+                String lobStoreImpl = context.getConnection().getQueryServices().getProps()
+                        .get(LOB_STORE_IMPL, DEFAULT_LOB_STORE_IMPL);
+                return LiteralExpression.newConstant(value, column.getDataType(),
+                        column.getSortOrder(), Determinism.ALWAYS, lobStoreImpl);
             }
             return super.visit(node);
         }    
@@ -941,7 +946,10 @@ public class UpsertCompiler {
         @Override
         public Expression visit(LiteralParseNode node) throws SQLException {
             if (isTopLevel()) {
-                return LiteralExpression.newConstant(node.getValue(), column.getDataType(), column.getSortOrder(), Determinism.ALWAYS);
+                String lobStoreImpl = context.getConnection().getQueryServices().getProps()
+                        .get(LOB_STORE_IMPL, DEFAULT_LOB_STORE_IMPL);
+                return LiteralExpression.newConstant(node.getValue(), column.getDataType(),
+                        column.getSortOrder(), Determinism.ALWAYS, lobStoreImpl);
             }
             return super.visit(node);
         }

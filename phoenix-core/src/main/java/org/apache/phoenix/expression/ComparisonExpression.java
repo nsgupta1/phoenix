@@ -53,6 +53,7 @@ import org.apache.phoenix.util.StringUtil;
 
 import com.google.common.collect.Lists;
 
+import static org.apache.phoenix.query.QueryServicesOptions.DEFAULT_LOB_STORE_IMPL;
 
 /**
  * 
@@ -185,8 +186,9 @@ public class ComparisonExpression extends BaseCompoundExpression {
                         rhsExpr.getMaxLength() < lhsExpr.getMaxLength())) {
                 // TODO: if lengths are unequal and fixed width?
                 if (rhsExprDataType.isCoercibleTo(lhsExprDataType, rhsValue)) { // will convert 2.0 -> 2
-                    children = Arrays.asList(children.get(0), LiteralExpression.newConstant(rhsValue, lhsExprDataType, 
-                            lhsExpr.getMaxLength(), null, lhsExpr.getSortOrder(), determinism, rowKeyOrderOptimizable));
+                    children = Arrays.asList(children.get(0), LiteralExpression.newConstant(rhsValue,
+                            lhsExprDataType, lhsExpr.getMaxLength(), null, lhsExpr.getSortOrder(),
+                            determinism, rowKeyOrderOptimizable, DEFAULT_LOB_STORE_IMPL));
                 } else if (op == CompareOp.EQUAL) {
                     return LiteralExpression.newConstant(false, PBoolean.INSTANCE, Determinism.ALWAYS);
                 } else if (op == CompareOp.NOT_EQUAL) {
